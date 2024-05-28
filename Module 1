@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract EnemyManager {
+    struct Enemy {
+        uint id;
+        string name;
+        uint level;
+        uint healthPoints;
+        uint attackPower;
+    }
+
+    mapping(uint => Enemy) public enemies;
+    uint public totalEnemies;
+
+    event EnemyAdded(uint indexed id, string name, uint level, uint healthPoints, uint attackPower);
+    event EnemyRemoved(uint indexed id);
+
+    constructor() {
+        totalEnemies = 0;
+    }
+
+    function addEnemy(string memory _name, uint _level, uint _healthPoints, uint _attackPower) public {
+        totalEnemies++;
+        enemies[totalEnemies] = Enemy(totalEnemies, _name, _level, _healthPoints, _attackPower);
+        emit EnemyAdded(totalEnemies, _name, _level, _healthPoints, _attackPower);
+    }
+
+    function removeEnemy(uint _id) public {
+        require(_id > 0 && _id <= totalEnemies, "Invalid enemy ID");
+
+        delete enemies[_id];
+        emit EnemyRemoved(_id);
+    }
+
+    function getEnemy(uint _id) public view returns (string memory, uint, uint, uint) {
+        require(_id > 0 && _id <= totalEnemies, "Invalid enemy ID");
+
+        Enemy memory enemy = enemies[_id];
+        return (enemy.name, enemy.level, enemy.healthPoints, enemy.attackPower);
+    }
+}
