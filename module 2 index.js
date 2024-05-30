@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import atm_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
 
@@ -8,6 +8,12 @@ export default function HomePage() {
   const [atm, setATM] = useState(undefined);
   const [balance, setBalance] = useState(undefined);
   const [isHidden, setIsHidden] = useState(false);
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [sex, setSex] = useState('');
+  const [cellphone, setCellphone] = useState('');
+  const [signedUp, setSignedUp] = useState(false);
+  const [dateTime, setDateTime] = useState('');
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
   const atmABI = atm_abi.abi;
@@ -75,15 +81,46 @@ export default function HomePage() {
     }
   };
 
-  const initUser = () => {
-    // Check to see if user has Metamask
-    if (!ethWallet) {
-      return <p>Please install Metamask in order to use this ATM.</p>;
+  const handleSignup = () => {
+    // Validate name, age, sex, and cellphone number
+    if (name.trim() === '' || age.trim() === '' || sex.trim() === '' || cellphone.trim() === '') {
+      alert('Please provide all required information.');
+      return;
     }
 
-    // Check to see if user is connected. If not, connect to their account
+    // Save the user's information
+    // For now, we'll just set signedUp to true to simulate signup completion
+    setSignedUp(true);
+  };
+
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    setDateTime(now.toLocaleString());
+  };
+
+  const renderSignupForm = () => {
+    return (
+      <div>
+        <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+        <input type="text" placeholder="Age" value={age} onChange={(e) => setAge(e.target.value)} />
+        <input type="text" placeholder="Sex" value={sex} onChange={(e) => setSex(e.target.value)} />
+        <input type="text" placeholder="Cellphone Number" value={cellphone} onChange={(e) => setCellphone(e.target.value)} />
+        <button onClick={handleSignup}>Sign Up</button>
+      </div>
+    );
+  };
+
+  const initUser = () => {
+    if (!ethWallet) {
+      return <p>Please install MetaMask to use this ATM.</p>;
+    }
+
     if (!account) {
-      return <button onClick={connectAccount}>Connect To Friday</button>;
+      return <button onClick={connectAccount}>Connect to Friday</button>;
+    }
+
+    if (!signedUp) {
+      return renderSignupForm();
     }
 
     if (balance === undefined) {
@@ -103,11 +140,15 @@ export default function HomePage() {
         </button>
         <button className="action-button" onClick={deposit}>Deposit 1 ETH</button>
         <button className="action-button" onClick={withdraw}>Withdraw 1 ETH</button>
+        <button onClick={getCurrentDateTime}>View Current Date and Time</button>
+        <p>{dateTime}</p>
       </div>
     );
   };
 
-  useEffect(() => { getWallet(); }, []);
+  useEffect(() => {
+    getWallet();
+  }, []);
 
   return (
     <main className="container">
