@@ -11,53 +11,110 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Fridaysilog is ERC20, Ownable {
+contract FridaySilogan is ERC20, Ownable {
 
-    mapping(uint256 => uint256) public ShopPrices;
+    mapping(uint256 => uint256) public shopPrices;
+    mapping(uint256 => string) public shopItems;
+    mapping(address => mapping(uint256 => uint256)) private _playerInventory;
 
-    constructor() ERC20("Degen", "DGN") Ownable(msg.sender) {
-        ShopPrices[1] = 100;
-        ShopPrices[2] = 90;
-        ShopPrices[3] = 80;
-        ShopPrices[4] = 70;
+    event TokensMinted(address indexed to, uint256 amount);
+    event TokensTransferred(address indexed from, address indexed to, uint256 amount);
+    event ItemPurchased(address indexed buyer, uint256 itemId, uint256 amount);
+    event TokensBurned(address indexed from, uint256 amount);
+
+    constructor() ERC20("FridayLog", "Silog") Ownable(msg.sender) {
+        shopPrices[1] = 100;
+        shopPrices[2] = 80;
+        shopPrices[3] = 40;
+        shopPrices[4] = 30;
+        
+        shopItems[1] = "ChickSilog";
+        shopItems[2] = "TapaSilog";
+        shopItems[3] = "CantonSilog";
+        shopItems[4] = "HatSilog";
+    }
+
+    function mintTokens(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+        emit TokensMinted(to, amount);
     }
 
 
-    function mintDGN(address _to, uint256 _amount) public onlyOwner {
-        _mint(_to, _amount);
+    function listSilogFood() external view returns (string memory) {
+        return string(
+            abi.encodePacked(
+                "Item Sales: {1} ", shopItems[1], " (", uintToString(shopPrices[1]), ") {2} ",
+                shopItems[2], " (", uintToString(shopPrices[2]), ") {3} ",
+                shopItems[3], " (", uintToString(shopPrices[3]), ") {4} ",
+                shopItems[4], " (", uintToString(shopPrices[4]), ")"
+            )
+        );
     }
 
-    function transferDGN(address _to, uint256 _amount) public {
-        require(balanceOf(msg.sender) >= _amount, "Transfer Failed: Insufficient balance.");
-        approve(msg.sender, _amount);
-        transferFrom(msg.sender, _to, _amount);
+    function buySilog(uint256 item) public {
+        require(shopPrices[item] > 0, "Item is not available.");
+        require(balanceOf(msg.sender) >= shopPrices[item], "Redeem Failed: Insufficient balance.");
+        _transfer(msg.sender, owner(), shopPrices[item]);
+        _playerInventory[msg.sender][item] += 1;
+        emit ItemPurchased(msg.sender, item, shopPrices[item]);
     }
 
-    function showShopItems() external pure returns (string memory) {
-        string memory saleOptions = "The food on sale: {1} chicksilog (100) {2} tapsilog (90) {3} longsilog (80) {4} hotsilog (70)";
-        return saleOptions;
+    function burnTokens(uint256 amount) public {
+        require(balanceOf(msg.sender) >= amount, "Burn Failed: You don't have enough balance.");
+        _burn(msg.sender, amount);
+        emit TokensBurned(msg.sender, amount);
     }
 
-    function redeemDGN(uint256 _item) public {
-        require(ShopPrices[_item] > 0, "Item is not available.");
-        require(_item <= 4, "Item is not available.");
-        require(balanceOf(msg.sender) >= ShopPrices[_item], "Redeem Failed: Insufficient balance.");
-        transfer(owner(), ShopPrices[_item]);
-    }
-    
-    function burnDGN(uint256 _amount) public {
-        require(balanceOf(msg.sender) >= _amount, "Burn Failed: Insufficient balance.");
-        approve(msg.sender, _amount);
-        _burn(msg.sender, _amount);
+    function checkBalance() external view returns (uint256) {
+        return balanceOf(msg.sender);
     }
 
-    function getBalance() external view returns (uint256) {
-        return this.balanceOf(msg.sender);
+    function checkSilogFood() external view returns (string memory) {
+        return string(
+            abi.encodePacked(
+                shopItems[1], " (", uintToString(_playerInventory[msg.sender][1]), 
+                ") ", shopItems[2], " (", uintToString(_playerInventory[msg.sender][2]), 
+                ") ", shopItems[3], " (", uintToString(_playerInventory[msg.sender][3]), 
+                ") ", shopItems[4], " (", uintToString(_playerInventory[msg.sender][4]), ")"
+            )
+        );
     }
 
-    function decimals() override public pure returns (uint8) {
+    function checkInventory() external view returns (string memory) {
+        string memory inventoryList;
+        for (uint256 i = 1; i <= 4; i++) {
+            if (_playerInventory[msg.sender][i] > 0) {
+                inventoryList = string(abi.encodePacked(inventoryList, shopItems[i], " (", uintToString(_playerInventory[msg.sender][i]), ") "));
+            }
+        }
+        return inventoryList;
+    }
+
+    function getBoughtItem(uint256 itemId) external view returns (uint256) {
+        require(itemId >= 1 && itemId <= 4, "Invalid item ID");
+        return _playerInventory[msg.sender][itemId];
+    }
+
+    function decimals() public pure override returns (uint8) {
         return 0;
     }
 
-    
+    function uintToString(uint256 v) private pure returns (string memory) {
+        if (v == 0) {
+            return "0";
+        }
+        uint256 maxLength = 78;
+        bytes memory reversed = new bytes(maxLength);
+        uint256 i = 0;
+        while (v != 0) {
+            uint256 remainder = v % 10;
+            v = v / 10;
+            reversed[i++] = bytes1(uint8(48 + remainder));
+        }
+        bytes memory s = new bytes(i); 
+        for (uint256 j = 0; j < i; j++) {
+            s[j] = reversed[i - j - 1];
+        }
+        return string(s);
+    }
 }
